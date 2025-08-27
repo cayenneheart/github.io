@@ -85,13 +85,35 @@
 
   // === VIEW MANAGEMENT ===
   function showView(viewName) {
-    [viewTimer, viewDone, viewRoutines].forEach(function(view) {
-      if (view) view.classList.remove('active');
+    console.log('showView called with:', viewName); // デバッグログ
+    console.log('Available views:', {
+      timer: !!viewTimer,
+      done: !!viewDone,
+      routines: !!viewRoutines
     });
     
-    if (viewName === 'timer' && viewTimer) viewTimer.classList.add('active');
-    else if (viewName === 'done' && viewDone) viewDone.classList.add('active');
-    else if (viewName === 'routines' && viewRoutines) viewRoutines.classList.add('active');
+    [viewTimer, viewDone, viewRoutines].forEach(function(view) {
+      if (view) {
+        view.classList.remove('active');
+        view.setAttribute('aria-hidden', 'true');
+      }
+    });
+    
+    if (viewName === 'timer' && viewTimer) {
+      viewTimer.classList.add('active');
+      viewTimer.setAttribute('aria-hidden', 'false');
+    }
+    else if (viewName === 'done' && viewDone) {
+      viewDone.classList.add('active');
+      viewDone.setAttribute('aria-hidden', 'false');
+    }
+    else if (viewName === 'routines' && viewRoutines) {
+      viewRoutines.classList.add('active');
+      viewRoutines.setAttribute('aria-hidden', 'false');
+      console.log('Routines view activated');
+    }
+    
+    console.log('Current active view:', document.querySelector('.view.active')?.id);
   }
 
   function showToast(msg) {
@@ -373,15 +395,27 @@
 
   // === RENDERING FUNCTIONS ===
   function renderRoutines() {
+    console.log('renderRoutines called, routines.length:', routines.length); // デバッグログ
+    
     var container = document.getElementById('routines-container');
     var emptyState = document.getElementById('empty-state');
     var routinesList = document.getElementById('routines-list');
     
-    if (!container || !routinesList) return;
+    console.log('DOM elements:', {
+      container: !!container,
+      emptyState: !!emptyState,
+      routinesList: !!routinesList
+    });
+    
+    if (!container || !routinesList) {
+      console.warn('Required DOM elements not found');
+      return;
+    }
     
     if (routines.length === 0) {
       if (emptyState) emptyState.style.display = 'block';
       routinesList.style.display = 'none';
+      console.log('Showing empty state');
       return;
     }
     
@@ -420,6 +454,8 @@
       
       routinesList.appendChild(li);
     });
+    
+    console.log('Rendered', sorted.length, 'routines');
   }
 
   function renderStats() {
@@ -578,16 +614,22 @@
 
   if (maimeeBtn) {
     maimeeBtn.addEventListener('click', function () {
+      console.log('mai-mee button clicked'); // デバッグログ
+      console.log('viewRoutines:', viewRoutines); // DOM要素確認
+      
+      // ルーティーンデータを初期化（毎回）
+      routines = loadRoutines();
+      stats = loadStats();
+      checkDateRollover();
+      
       // mai-meeボタンでルーティーン画面へ遷移
       showView('routines');
       
-      // 初回表示時にデータをロード・レンダリング
-      if (!routines.length) {
-        routines = loadRoutines();
-        stats = loadStats();
-        renderRoutines();
-        renderStats();
-      }
+      // レンダリング
+      renderRoutines();
+      renderStats();
+      
+      console.log('Switched to routines view'); // 確認ログ
     });
   }
 
@@ -632,19 +674,30 @@
 
   // === DOCUMENT READY ===
   document.addEventListener('DOMContentLoaded', function () {
+    console.log('DOM loaded, initializing...'); // デバッグログ
+    
     // ルーティーン機能を初期化
     initializeRoutines();
+    
+    // DOM要素の存在確認
+    console.log('DOM elements check:', {
+      viewRoutines: !!viewRoutines,
+      routinesContainer: !!document.getElementById('routines-container'),
+      maimeeBtn: !!maimeeBtn
+    });
     
     // イベントリスナーを設定
     var routinesContainer = document.getElementById('routines-container');
     if (routinesContainer) {
       routinesContainer.addEventListener('click', handleRoutineClick);
       routinesContainer.addEventListener('click', handleSeedClick);
+      console.log('Routines container event listeners added');
     }
     
     var addBtn = document.getElementById('add-routine-btn');
     if (addBtn) {
       addBtn.addEventListener('click', handleAddRoutine);
+      console.log('Add button event listener added');
     }
     
     var titleInput = document.getElementById('routine-title');
@@ -680,6 +733,8 @@
     if (shouldAutoStart()) {
       setTimeout(start, 120);
     }
+    
+    console.log('Initialization complete');
   });
 
 })();
