@@ -1,267 +1,228 @@
-// 深呼吸アプリ - バージョン1
-class BreathingApp {
-  constructor() {
-    this.params = this.parseParams();
-    this.totalSeconds = this.params.sec;
-    this.pattern = this.params.pattern;
-    this.startTime = null;
-    this.isCompleted = false;
-    this.audioContext = null;
-    this.audioPlaying = false;
-    this.audioNodes = {};
+document.addEventListener('DOMContentLoaded', () => {
+  // --- DOM Elements ---
+  const views = {
+    home: document.getElementById('view-home'),
+    timer: document.getElementById('view-timer'),
+    done: document.getElementById('view-done'),
+  };
+  const timerDisplay = document.getElementById('timer');
+  const instruction = document.getElementById('instruction');
+  const circle = document.getElementById('breathingCircle');
+  const startButton = document.getElementById('startButton');
+  const backButton = document.getElementById('backButton');
+  const maimeeButton = document.getElementById('maimeeButton');
+  const doneHeading = document.getElementById('done-heading');
+  const toast = document.getElementById('toast');
+  const audioToggle = document.getElementById('audioToggle');
+
+  // --- State ---
+  let timerInterval;
+  let params = {};
+  let audioContext;
+  let oscillator;
+  let gainNode;
+  let isAudioEnabled = false;
+
+  // --- Core Functions ---
+
+  /**
+   * URLクエリパラメータを解析・検証する
+   */
+  function parseParams() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const defaultSec = 20;
+    const sec = parseInt(urlParams.get('sec'), 10);
     
-    this.elements = {
-      timer: document.getElementById('timer'),
-      circle: document.getElementById('breathingCircle'),
-      instruction: document.getElementById('instruction'),
-      audioToggle: document.getElementById('audioToggle')
+    return {
+      totalSeconds: (sec > 0 && sec <= 300) ? sec : defaultSec,
+      pattern: (urlParams.get('pattern') || '4-2-4').split('-').map(Number),
+      back_url: urlParams.get('back_url'),
+      back_label: urlParams.get('back_label') || '元のアプリに戻る',
+      maimee_url: urlParams.get('maimee_url') || '/',
+      autoStart: urlParams.has('sec') || urlParams.has('back_url'),
     };
-    
-    this.phases = ['inhale', 'hold', 'exhale'];
-    this.phaseTexts = {
-      inhale: '吸って',
-      hold: '止めて',
-      exhale: '吐いて'
-    };
-    
-    this.init();
   }
-  
-  parseParams() {
-    const params = new URLSearchParams(window.location.search);
-    
-  // 合計秒数の取得（デフォルト20秒）
-  let sec = parseInt(params.get('sec'));
-  if (isNaN(sec)) sec = 20;
-  if (sec < 5 || sec > 600) sec = 20; // 5秒〜10分の範囲制限
-    
-    // パターンの取得（デフォルト4-2-4）
-    let pattern = params.get('pattern') || '4-2-4';
-    const patternMatch = pattern.match(/^(\d+)-(\d+)-(\d+)$/);
-    if (!patternMatch) {
-      pattern = [4, 2, 4]; // デフォルト
-    } else {
-      pattern = patternMatch.slice(1).map(n => parseInt(n));
-      // パターン検証（1-30秒の範囲）
-      if (pattern.some(n => n < 1 || n > 30)) {
-        pattern = [4, 2, 4]; // デフォルトにフォールバック
-      }
+
+  /**
+   * 指定されたビューを表示する
+   * @param {('home'|'timer'|'done')} viewId 
+   */
+  function showView(viewId) {
+    Object.values(views).forEach(view => view.classList.remove('active'));
+    if (views[viewId]) {
+      views[viewId].classList.add('active');
     }
-    
-    return { sec, pattern };
   }
-  
-  init() {
-    // 初期状態の設定
-    this.elements.timer.textContent = this.totalSeconds;
-    this.elements.instruction.textContent = '準備中...';
+
+  /**
+   * タイマーを開始する
+   */
+  function startTimer() {
+    showView('timer');
+    const { totalSeconds, pattern } = params;
+    const cycleLength = pattern.reduce((a, b) => a + b, 0);
+    const [inhale, hold, exhale] = pattern;
+    const startTime = Date.now();
     
-    // 音声コントロールの設定
-    this.elements.audioToggle.addEventListener('click', () => {
-      this.toggleAudio();
-    });
-    
-    // 1秒後に自動開始
-    setTimeout(() => {
-      this.start();
-    }, 1000);
-  }
-  
-  start() {
-    this.startTime = Date.now();
-    this.elements.instruction.textContent = this.phaseTexts.inhale;
-    this.updateAnimation();
-    
-    // 音楽を開始（ユーザー操作済みの場合）
-    this.initAudio();
-    
-    // メインループ（100ms間隔で更新）
-    this.intervalId = setInterval(() => {
-      this.updateAnimation();
+    timerDisplay.textContent = totalSeconds;
+    circle.style.transitionDuration = `${inhale}s`;
+
+    timerInterval = setInterval(() => {
+      const elapsedTime = (Date.now() - startTime) / 1000;
+      const remainingTime = totalSeconds - elapsedTime;
+      
+      if (remainingTime < 0) {
+        onTimerEnd();
+        return;
+      }
+      
+      timerDisplay.textContent = Math.ceil(remainingTime);
+      
+      const phaseTime = elapsedTime % cycleLength;
+      
+      if (phaseTime < inhale) {
+        if (!circle.classList.contains('inhale')) {
+          instruction.textContent = '吸って';
+          circle.className = 'breathing-circle inhale';
+          circle.style.transitionDuration = `${inhale}s`;
+        }
+      } else if (phaseTime < inhale + hold) {
+        if (!circle.classList.contains('hold')) {
+          instruction.textContent = '止めて';
+          circle.className = 'breathing-circle hold';
+        }
+      } else {
+        if (!circle.classList.contains('exhale')) {
+          instruction.textContent = '吐いて';
+          circle.className = 'breathing-circle exhale';
+          circle.style.transitionDuration = `${exhale}s`;
+        }
+      }
     }, 100);
   }
-  
-  updateAnimation() {
-    const elapsed = Date.now() - this.startTime;
-    const elapsedSeconds = elapsed / 1000;
-    const remainingSeconds = Math.max(0, this.totalSeconds - elapsedSeconds);
-    
-    // タイマー更新
-    this.elements.timer.textContent = Math.ceil(remainingSeconds);
-    
-    // 終了チェック
-    if (remainingSeconds <= 0) {
-      this.complete();
-      return;
-    }
-    
-    // 現在のフェーズ計算
-    const cycleLength = this.pattern[0] + this.pattern[1] + this.pattern[2];
-    const cyclePosition = elapsedSeconds % cycleLength;
-    
-    let currentPhase;
-    let phaseProgress;
-    
-    if (cyclePosition < this.pattern[0]) {
-      // 吸う
-      currentPhase = 'inhale';
-      phaseProgress = cyclePosition / this.pattern[0];
-    } else if (cyclePosition < this.pattern[0] + this.pattern[1]) {
-      // 止める
-      currentPhase = 'hold';
-      phaseProgress = (cyclePosition - this.pattern[0]) / this.pattern[1];
-    } else {
-      // 吐く
-      currentPhase = 'exhale';
-      phaseProgress = (cyclePosition - this.pattern[0] - this.pattern[1]) / this.pattern[2];
-    }
-    
-    // フェーズ変更時の処理
-    if (this.currentPhase !== currentPhase) {
-      this.currentPhase = currentPhase;
-      this.updatePhase(currentPhase);
-      
-      // バイブレーション（対応デバイスのみ）
-      if (navigator.vibrate) {
-        navigator.vibrate(50);
-      }
-    }
-  }
-  
-  updatePhase(phase) {
-    // CSSクラス更新
-    this.elements.circle.className = `breathing-circle ${phase}`;
-    
-    // テキスト更新
-    this.elements.instruction.textContent = this.phaseTexts[phase];
-  }
-  
-  complete() {
-    clearInterval(this.intervalId);
-    this.isCompleted = true;
-    
-    this.elements.timer.textContent = '0';
-    this.elements.instruction.textContent = '完了！';
-    this.elements.circle.className = 'breathing-circle';
-    document.body.classList.add('completed');
-    
-    // 音楽を停止
-    this.stopAudio();
-    
-    // バイブレーション（完了時）
-    if (navigator.vibrate) {
-      navigator.vibrate([100, 50, 100]);
-    }
-  }
-  
-  // 音声関連メソッド
-  async initAudio() {
-    try {
-      if (!this.audioContext) {
-        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      
-      if (this.audioContext.state === 'suspended') {
-        await this.audioContext.resume();
-      }
-      
-      // リラックス音楽を生成・再生
-      this.createRelaxingSound();
-      this.elements.audioToggle.disabled = false;
-    } catch (error) {
-      console.log('Audio initialization failed:', error);
-      this.elements.audioToggle.disabled = true;
-    }
-  }
-  
-  createRelaxingSound() {
-    if (!this.audioContext || this.audioPlaying) return;
-    
-    try {
-      // 低音の波音のような音を生成
-      const oscillator1 = this.audioContext.createOscillator();
-      const oscillator2 = this.audioContext.createOscillator();
-      const gainNode = this.audioContext.createGain();
-      const filterNode = this.audioContext.createBiquadFilter();
-      
-      // 設定
-      oscillator1.type = 'sine';
-      oscillator1.frequency.value = 200;
-      oscillator2.type = 'sine';
-      oscillator2.frequency.value = 300;
-      
-      filterNode.type = 'lowpass';
-      filterNode.frequency.value = 800;
-      
-      gainNode.gain.value = 0.05;
-      
-      // 周波数を微細に変動させてナチュラルに
-      oscillator1.frequency.setValueAtTime(200, this.audioContext.currentTime);
-      oscillator1.frequency.linearRampToValueAtTime(220, this.audioContext.currentTime + 4);
-      oscillator1.frequency.linearRampToValueAtTime(180, this.audioContext.currentTime + 8);
-      
-      oscillator2.frequency.setValueAtTime(300, this.audioContext.currentTime);
-      oscillator2.frequency.linearRampToValueAtTime(280, this.audioContext.currentTime + 6);
-      oscillator2.frequency.linearRampToValueAtTime(320, this.audioContext.currentTime + 10);
-      
-      // 接続
-      oscillator1.connect(filterNode);
-      oscillator2.connect(filterNode);
-      filterNode.connect(gainNode);
-      gainNode.connect(this.audioContext.destination);
-      
-      // 再生
-      oscillator1.start();
-      oscillator2.start();
-      
-      // 保存（停止用）
-      this.audioNodes = {
-        oscillator1,
-        oscillator2,
-        gainNode,
-        filterNode
-      };
-      
-      this.audioPlaying = true;
-      this.elements.audioToggle.textContent = '🔊';
-      
-      // 自動で音楽をループ
-      setTimeout(() => {
-        if (this.audioPlaying && !this.isCompleted) {
-          this.stopAudio();
-          setTimeout(() => this.createRelaxingSound(), 100);
-        }
-      }, this.totalSeconds * 1000);
-      
-    } catch (error) {
-      console.log('Audio creation failed:', error);
-    }
-  }
-  
-  stopAudio() {
-    if (this.audioNodes.oscillator1) {
-      try {
-        this.audioNodes.oscillator1.stop();
-        this.audioNodes.oscillator2.stop();
-      } catch (e) {
-        // Already stopped
-      }
-    }
-    this.audioNodes = {};
-    this.audioPlaying = false;
-    this.elements.audioToggle.textContent = '🎵';
-  }
-  
-  toggleAudio() {
-    if (this.audioPlaying) {
-      this.stopAudio();
-    } else {
-      this.initAudio();
-    }
-  }
-}
 
-// ページ読み込み時に自動開始
-document.addEventListener('DOMContentLoaded', () => {
-  new BreathingApp();
+  /**
+   * タイマー完了時の処理
+   */
+  function onTimerEnd() {
+    clearInterval(timerInterval);
+    instruction.textContent = '完了！';
+    circle.className = 'breathing-circle';
+    document.body.classList.add('completed');
+    stopAudio();
+    showView('done');
+    bindDoneButtons();
+    doneHeading.focus();
+  }
+
+  /**
+   * 完了画面のボタンにイベントをバインドする
+   */
+  function bindDoneButtons() {
+    // 元のアプリに戻るボタン
+    if (isValidUrl(params.back_url)) {
+      backButton.textContent = params.back_label;
+      backButton.disabled = false;
+      backButton.onclick = () => {
+        backButton.disabled = true;
+        maimeeButton.disabled = true;
+        window.location.href = params.back_url;
+      };
+    } else {
+      backButton.disabled = true;
+      if (params.back_url) showToast('戻り先のURLが無効です');
+    }
+
+    // mai-meeに戻るボタン
+    maimeeButton.onclick = () => {
+      backButton.disabled = true;
+      maimeeButton.disabled = true;
+      window.location.href = params.maimee_url;
+    };
+  }
+
+  /**
+   * URLが有効か簡易的にチェックする
+   * @param {string} urlString 
+   */
+  function isValidUrl(urlString) {
+    if (!urlString) return false;
+    // 簡単なチェック。カスタムスキームも許可するため緩めに。
+    return urlString.includes(':') || urlString.startsWith('/');
+  }
+
+  /**
+   * トースト通知を表示する
+   * @param {string} message 
+   */
+  function showToast(message) {
+    toast.textContent = message;
+    toast.classList.add('show');
+    setTimeout(() => {
+      toast.classList.remove('show');
+    }, 3000);
+  }
+
+  // --- Audio Functions ---
+  function setupAudio() {
+    if (audioContext) return;
+    try {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      gainNode = audioContext.createGain();
+      gainNode.gain.value = 0.05;
+      gainNode.connect(audioContext.destination);
+    } catch (e) {
+      console.error("Web Audio API is not supported in this browser");
+      audioToggle.disabled = true;
+    }
+  }
+
+  function playAudio() {
+    if (!audioContext || oscillator) return;
+    if (audioContext.state === 'suspended') {
+      audioContext.resume();
+    }
+    oscillator = audioContext.createOscillator();
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+    oscillator.frequency.linearRampToValueAtTime(220, audioContext.currentTime + 4);
+    oscillator.connect(gainNode);
+    oscillator.start();
+    isAudioEnabled = true;
+    audioToggle.textContent = '🔊';
+  }
+
+  function stopAudio() {
+    if (oscillator) {
+      oscillator.stop();
+      oscillator.disconnect();
+      oscillator = null;
+    }
+    isAudioEnabled = false;
+    audioToggle.textContent = '🎵';
+  }
+
+  audioToggle.addEventListener('click', () => {
+    setupAudio();
+    isAudioEnabled ? stopAudio() : playAudio();
+  });
+
+  // --- Initialization ---
+  function init() {
+    params = parseParams();
+    document.title = `深呼吸 - ${params.totalSeconds}秒`;
+    timerDisplay.textContent = params.totalSeconds;
+
+    if (params.autoStart) {
+      setTimeout(startTimer, 1000); // 1秒待ってから開始
+    } else {
+      showView('home');
+      startButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        startTimer();
+      });
+    }
+  }
+
+  init();
 });
