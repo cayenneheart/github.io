@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Web Timer</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+    }
+    #timer {
+      font-size: 96px;
+      color: blue;
+    }
+  </style>
+</head>
+<body>
+  <div id="timer" aria-live="polite">60</div>
+  <script>
+    let time = 60;
+    const timerElement = document.getElementById('timer');
+
+    function updateTimer() {
+      if (time > 0) {
+        time--;
+        timerElement.textContent = time;
+      }
+    }
+
+    setInterval(updateTimer, 1000);
+  </script>
+</body>
+</html>
