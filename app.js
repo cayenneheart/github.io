@@ -286,8 +286,8 @@
       {
         id: generateId(),
         title: "深呼吸",
-        durationSec: 20,
-        emoji: "🌬️",
+        durationSec: 30,
+        emoji: "",
         category: "休憩",
         pinned: false,
         counts: { total: 0, today: 0, todayDate: todayStr() },
@@ -298,8 +298,8 @@
       {
         id: generateId(),
         title: "水を飲む",
-        durationSec: 15,
-        emoji: "💧",
+        durationSec: 60,
+        emoji: "",
         category: "健康",
         pinned: false,
         counts: { total: 0, today: 0, todayDate: todayStr() },
@@ -310,8 +310,8 @@
       {
         id: generateId(),
         title: "肩回し",
-        durationSec: 60,
-        emoji: "🤸",
+        durationSec: 180,
+        emoji: "",
         category: "運動",
         pinned: false,
         counts: { total: 0, today: 0, todayDate: todayStr() },
@@ -322,12 +322,12 @@
     ];
   }
 
-  function addRoutine(title, durationSec, emoji) {
+  function addRoutine(title, durationSec) {
     var routine = {
       id: generateId(),
       title: title.trim(),
       durationSec: parseInt(durationSec) || 20,
-      emoji: emoji || getRandomEmoji(),
+  emoji: "",
       category: "",
       pinned: false,
       counts: { total: 0, today: 0, todayDate: todayStr() },
@@ -344,10 +344,7 @@
     return routine;
   }
 
-  function getRandomEmoji() {
-    var emojis = ["✨", "💪", "🧘", "🌟", "💫", "🎯", "🚀", "💎", "🔥", "⭐"];
-    return emojis[Math.floor(Math.random() * emojis.length)];
-  }
+  function getRandomEmoji() { return ""; }
 
   function completeRoutine(id) {
     var routine = routines.find(function(r) { return r.id === id; });
@@ -415,12 +412,11 @@
     }
   }
 
-  function editRoutine(id, title, durationSec, emoji) {
+  function editRoutine(id, title, durationSec) {
     var routine = routines.find(function(r) { return r.id === id; });
     if (routine) {
       routine.title = title.trim();
       routine.durationSec = parseInt(durationSec) || 20;
-      routine.emoji = emoji || routine.emoji;
       routine.updatedAt = Date.now();
       saveRoutines();
       renderRoutines();
@@ -485,7 +481,7 @@
       var level = routine.level || 1;
       var xpPct = xp % 100;
       li.innerHTML = [
-        '<div class="routine-emoji">' + routine.emoji + '</div>',
+  '<div class="routine-emoji">' + (routine.emoji || '•') + '</div>',
         '<div class="routine-info">',
         '  <h3 class="routine-title">' + escapeHtml(routine.title) + '</h3>',
         '  <div class="routine-meta">',
@@ -537,9 +533,8 @@
   
   function openModal(routineId) {
     var modal = document.getElementById('edit-modal');
-    var titleInput = document.getElementById('edit-title');
-    var durationInput = document.getElementById('edit-duration');
-    var emojiInput = document.getElementById('edit-emoji');
+  var titleInput = document.getElementById('edit-title');
+  var durationSelect = document.getElementById('edit-duration');
     
     if (!modal) return;
     
@@ -548,8 +543,11 @@
     
     if (routine) {
       titleInput.value = routine.title;
-      durationInput.value = routine.durationSec;
-      emojiInput.value = routine.emoji;
+      var opts = [30,60,180,300,600,900];
+      if(!opts.includes(routine.durationSec)) opts.push(routine.durationSec);
+      opts.sort(function(a,b){return a-b;});
+      durationSelect.innerHTML = opts.map(v=>'<option value="'+v+'">'+(v<60? v+'秒': (v/60)+'分')+'</option>').join('');
+      durationSelect.value = routine.durationSec;
     }
     
     modal.classList.add('show');
@@ -584,30 +582,7 @@
   }
 
   function handleAddRoutine() {
-    var titleInput = document.getElementById('routine-title');
-    var durationInput = document.getElementById('routine-duration');
-    var addBtn = document.getElementById('add-routine-btn');
-    
-    if (!titleInput || !durationInput) return;
-    
-    var title = titleInput.value.trim();
-    var duration = parseInt(durationInput.value) || 20;
-    
-    if (!title || title.length < 1 || title.length > 40) {
-      showToast('1〜40文字で入力してください');
-      return;
-    }
-    
-    if (duration < 10 || duration > 900) {
-      showToast('10〜900秒で入力してください');
-      return;
-    }
-    
-    addBtn.disabled = true;
-    addRoutine(title, duration);
-    titleInput.value = '';
-    durationInput.value = '20';
-    setTimeout(function() { addBtn.disabled = false; }, 500);
+  // deprecated (inline form removed)
   }
 
   function handleSeedClick(e) {
@@ -615,33 +590,29 @@
     
     var title = e.target.getAttribute('data-title');
     var duration = parseInt(e.target.getAttribute('data-duration'));
-    var emoji = e.target.getAttribute('data-emoji');
-    
-    addRoutine(title, duration, emoji);
+  addRoutine(title, duration);
   }
 
   function handleEditSubmit(e) {
     e.preventDefault();
     
     var titleInput = document.getElementById('edit-title');
-    var durationInput = document.getElementById('edit-duration');
-    var emojiInput = document.getElementById('edit-emoji');
+  var durationSelect = document.getElementById('edit-duration');
     
     var title = titleInput.value.trim();
-    var duration = parseInt(durationInput.value) || 20;
-    var emoji = emojiInput.value.trim();
+  var duration = parseInt(durationSelect.value) || 30;
     
     if (!title || title.length < 1 || title.length > 40) {
       showToast('1〜40文字で入力してください');
       return;
     }
     
-    if (duration < 10 || duration > 900) {
-      showToast('10〜900秒で入力してください');
+    if (duration < 30 || duration > 900) {
+      showToast('30〜900秒で入力してください');
       return;
     }
     
-    editRoutine(currentEditId, title, duration, emoji);
+    editRoutine(currentEditId, title, duration);
   }
 
   function handleDeleteClick() {
@@ -687,11 +658,10 @@
     addForm.addEventListener('submit', function(e){
       e.preventDefault();
       var title = document.getElementById('new-title').value.trim();
-      var dur = parseInt(document.getElementById('new-duration').value) || 20;
-      var emoji = document.getElementById('new-emoji').value.trim();
-      if(!title){ showToast('タイトル必須'); return; }
-      if(dur<5||dur>900){ showToast('5〜900秒'); return; }
-      addRoutine(title,dur,emoji);
+  var dur = parseInt(document.getElementById('new-duration').value) || 30;
+  if(!title){ showToast('タイトル必須'); return; }
+  if(dur<30||dur>900){ showToast('30〜900秒'); return; }
+  addRoutine(title,dur);
       location.hash='routines';
     });
   }

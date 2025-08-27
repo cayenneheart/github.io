@@ -716,13 +716,30 @@ button:disabled, a:disabled {
 
 .form-actions button {
   flex: 1;
-  padding: 12px;
+  padding: 14px 12px;
   border-radius: 8px;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
+  line-height: 1.2;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: background-color 0.2s, transform 0.1s;
 }
+
+select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid var(--bg-secondary-color);
+  border-radius: 8px;
+  background: var(--bg-color);
+  color: var(--text-color);
+  font-size: 1rem;
+  appearance: none;
+}
+select:focus { outline:none; border-color: var(--accent-color); }
 
 /* アニメーション軽減 */
 @media (prefers-reduced-motion: reduce) {
