@@ -137,11 +137,12 @@ button:disabled, a:disabled {
   position: absolute;
   top: 20px;
   right: 20px;
-  font-size: 2.5rem;
+  font-size: 3.5rem;
   font-variant-numeric: tabular-nums;
-  color: var(--timer-color);
+  color: #0a84ff;
   z-index: 10;
-  font-weight: 600;
+  font-weight: 700;
+  text-shadow: 0 0 10px rgba(10, 132, 255, 0.3);
 }
 
 /* 呼吸アニメーション領域 */
@@ -162,7 +163,7 @@ button:disabled, a:disabled {
   border-radius: 50%;
   background-color: var(--circle-color);
   transform: scale(0.8);
-  transition: transform 0.3s ease-in-out;
+  transition: transform 4s ease-in-out;
   box-shadow: 0 0 30px rgba(10, 132, 255, 0.4);
 }
 
@@ -180,17 +181,17 @@ button:disabled, a:disabled {
 /* アニメーション状態 */
 .breathing-circle.inhale {
   transform: scale(1.4);
-  transition-property: transform;
+  transition: transform 4s ease-in-out;
 }
 
 .breathing-circle.hold {
   transform: scale(1.4);
-  transition-property: none;
+  transition: none;
 }
 
 .breathing-circle.exhale {
   transform: scale(0.8);
-  transition-property: transform;
+  transition: transform 4s ease-in-out;
 }
 
 /* モーション低減対応 */
@@ -205,7 +206,7 @@ button:disabled, a:disabled {
   .timer {
     top: 15px;
     right: 15px;
-    font-size: 2rem;
+    font-size: 2.8rem;
   }
   
   .breathing-circle {

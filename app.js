@@ -33,7 +33,7 @@
 
   // --- DOM ---
   var root = document;
-  var timerEl = root.getElementById('timerValue');
+  var timerEl = root.getElementById('timer');
   var circle = root.getElementById('breathingCircle');
   var instruction = root.getElementById('instruction');
   var viewTimer = root.getElementById('view-timer');
@@ -77,29 +77,42 @@
   }
 
   // Compute breathing phase given elapsed and pattern (inhale, hold, exhale)
-  function phaseFor(elapsed, total) {
+  function phaseFor(elapsed) {
     var p = pattern;
-    var cycle = p[0] + p[1] + p[2];
-    var cycleMs = (cycle / total) * 1000 * total; // effectively cycle * 1000
-    var elapsedMs = elapsed % (cycle * 1000);
-    var inhaleMs = p[0] * 1000;
-    var holdMs = p[1] * 1000;
-    var exhaleMs = p[2] * 1000;
-    if (elapsedMs < inhaleMs) return { phase: 'inhale', t: elapsedMs / inhaleMs };
-    if (elapsedMs < inhaleMs + holdMs) return { phase: 'hold', t: (elapsedMs - inhaleMs) / holdMs };
-    return { phase: 'exhale', t: (elapsedMs - inhaleMs - holdMs) / exhaleMs };
+    var cycleDuration = p[0] + p[1] + p[2]; // 4 + 2 + 4 = 10 seconds total cycle
+    var timeInCycle = elapsed % (cycleDuration * 1000);
+    
+    var inhaleTime = p[0] * 1000; // 4 seconds
+    var holdTime = p[1] * 1000;   // 2 seconds  
+    var exhaleTime = p[2] * 1000; // 4 seconds
+    
+    if (timeInCycle < inhaleTime) {
+      return { phase: 'inhale', progress: timeInCycle / inhaleTime };
+    } else if (timeInCycle < inhaleTime + holdTime) {
+      return { phase: 'hold', progress: (timeInCycle - inhaleTime) / holdTime };
+    } else {
+      return { phase: 'exhale', progress: (timeInCycle - inhaleTime - holdTime) / exhaleTime };
+    }
   }
 
   function updateUI(remainingMs) {
     var remaining = Math.max(0, Math.ceil(remainingMs / 1000));
     if (timerEl) timerEl.textContent = remaining;
+    
     // breathing circle: scale based on phase
-    var el = phaseFor((Date.now() - startTime), totalSec * 1000);
-    if (!circle) return;
-    circle.classList.remove('inhale', 'hold', 'exhale');
-    circle.classList.add(el.phase);
-    // during hold we keep enlarged via CSS .hold
-    if (instruction) instruction.textContent = (el.phase === 'inhale' ? '吸って' : el.phase === 'hold' ? '止める' : '吐いて');
+    var elapsed = Date.now() - startTime;
+    var phaseInfo = phaseFor(elapsed);
+    
+    if (circle) {
+      circle.classList.remove('inhale', 'hold', 'exhale');
+      circle.classList.add(phaseInfo.phase);
+    }
+    
+    if (instruction) {
+      var text = phaseInfo.phase === 'inhale' ? '吸って' : 
+                 phaseInfo.phase === 'hold' ? '止める' : '吐いて';
+      instruction.textContent = text;
+    }
   }
 
   function tick() {
