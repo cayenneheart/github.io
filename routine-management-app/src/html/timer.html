@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>タイマー - ルーチン管理アプリ</title>
+    <link rel="stylesheet" href="../css/timer.css">
+</head>
+<body>
+    <div id="timer-container">
+        <h1>タイマー</h1>
+        <div id="timer-display">00:00</div>
+        <button id="start-button">スタート</button>
+        <button id="stop-button" disabled>ストップ</button>
+        <button id="reset-button" disabled>リセット</button>
+    </div>
+    <div id="completion-screen" class="hidden">
+        <h2>完了しました！</h2>
+        <p>タスクを完了しました。お疲れ様です！</p>
+        <button id="log-task-button">タスクを記録する</button>
+        <button id="back-to-tasks-button">タスクに戻る</button>
+    </div>
+    <script src="../js/timer.js"></script>
+    <script src="../js/app.js"></script>
+</body>
+</html>

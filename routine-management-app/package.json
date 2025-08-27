@@ -1,0 +1,24 @@
+{
+  "name": "routine-management-app",
+  "version": "1.0.0",
+  "description": "A routine management application that includes a timer, task tracking, and XP accumulation for leveling up.",
+  "main": "src/js/app.js",
+  "scripts": {
+    "start": "live-server src",
+    "build": "echo 'Build process not defined yet.'"
+  },
+  "keywords": [
+    "routine",
+    "management",
+    "timer",
+    "tasks",
+    "XP",
+    "local storage"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "live-server": "^1.2.1"
+  }
+}

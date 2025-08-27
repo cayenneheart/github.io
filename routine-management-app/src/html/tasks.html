@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>タスク管理</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/tasks.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>タスク管理</h1>
+            <button id="addTaskButton">タスクを追加</button>
+        </header>
+        <main>
+            <ul id="taskList"></ul>
+        </main>
+        <footer>
+            <p>© 2025 Routine Management App</p>
+        </footer>
+    </div>
+
+    <div id="taskModal" class="modal">
+        <div class="modal-content">
+            <span id="closeModal" class="close">&times;</span>
+            <h2 id="modalTitle">新しいタスク</h2>
+            <input type="text" id="taskInput" placeholder="タスク名">
+            <button id="saveTaskButton">保存</button>
+        </div>
+    </div>
+
+    <script src="../js/storage.js"></script>
+    <script src="../js/tasks.js"></script>
+    <script src="../js/app.js"></script>
+</body>
+</html>

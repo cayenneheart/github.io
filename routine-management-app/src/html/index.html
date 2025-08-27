@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ルーチン管理アプリ</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <h1>ルーチン管理アプリ</h1>
+        <nav>
+            <ul>
+                <li><a href="timer.html">タイマー</a></li>
+                <li><a href="tasks.html">タスク管理</a></li>
+                <li><a href="profile.html">プロフィール</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section id="routine-section">
+            <h2>今日のルーチン</h2>
+            <ul id="routine-list"></ul>
+            <input type="text" id="new-routine" placeholder="新しいルーチンを追加">
+            <button id="add-routine">追加</button>
+        </section>
+        <section id="xp-section">
+            <h2>経験値</h2>
+            <p id="xp-display">XP: 0</p>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2023 ルーチン管理アプリ</p>
+    </footer>
+    <script src="../js/app.js"></script>
+    <script src="../js/storage.js"></script>
+</body>
+</html>
