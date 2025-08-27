@@ -116,6 +116,28 @@
     console.log('Current active view:', document.querySelector('.view.active')?.id);
   }
 
+  // ハッシュ(#routines など)によるルーティング
+  function routeFromLocation() {
+    var hash = (location.hash || '').replace('#', '');
+    if (hash === 'routines') {
+      // データを都度ロード（他タブでの変更反映用）
+      routines = loadRoutines();
+      stats = loadStats();
+      checkDateRollover();
+      renderRoutines();
+      renderStats();
+      showView('routines');
+      return;
+    }
+    if (hash === 'done') {
+      showView('done');
+      return;
+    }
+    if (hash === 'timer' || hash === '') {
+      showView('timer');
+    }
+  }
+
   function showToast(msg) {
     if (!toast) return;
     toast.textContent = msg;
@@ -614,22 +636,14 @@
 
   if (maimeeBtn) {
     maimeeBtn.addEventListener('click', function () {
-      console.log('mai-mee button clicked'); // デバッグログ
-      console.log('viewRoutines:', viewRoutines); // DOM要素確認
-      
-      // ルーティーンデータを初期化（毎回）
-      routines = loadRoutines();
-      stats = loadStats();
-      checkDateRollover();
-      
-      // mai-meeボタンでルーティーン画面へ遷移
-      showView('routines');
-      
-      // レンダリング
-      renderRoutines();
-      renderStats();
-      
-      console.log('Switched to routines view'); // 確認ログ
+      console.log('mai-mee button clicked');
+      // 直接遷移ではなくハッシュを更新（履歴/再読込対応）
+      if (location.hash !== '#routines') {
+        location.hash = 'routines';
+      } else {
+        // 既にハッシュがある場合も再ルーティング
+        routeFromLocation();
+      }
     });
   }
 
@@ -733,6 +747,9 @@
     if (shouldAutoStart()) {
       setTimeout(start, 120);
     }
+  // 初回ロード時のハッシュ反映（タイマー開始後でもOK）
+  routeFromLocation();
+  window.addEventListener('hashchange', routeFromLocation);
     
     console.log('Initialization complete');
   });
