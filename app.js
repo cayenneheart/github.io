@@ -78,6 +78,7 @@
   var endTime = null;
   var rafId = null;
   var intervalId = null;
+  var timerRunning = false;
 
   // === ROUTINES DATA ===
   var routines = [];
@@ -121,6 +122,7 @@
     var hash = (location.hash || '').replace('#', '');
     if (hash === 'routines') {
       // データを都度ロード（他タブでの変更反映用）
+  stopTimer();
       routines = loadRoutines();
       stats = loadStats();
       checkDateRollover();
@@ -202,6 +204,7 @@
       tick();
       rafId = requestAnimationFrame(frame);
     });
+  timerRunning = true;
   }
 
   function finish() {
@@ -210,6 +213,14 @@
     showView('done');
     var doneHeading = document.getElementById('done-heading');
     if (doneHeading) doneHeading.focus();
+    timerRunning = false;
+  }
+
+  function stopTimer() {
+    if (!timerRunning) return;
+    if (intervalId) { clearInterval(intervalId); intervalId = null; }
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    timerRunning = false;
   }
 
   // === STORAGE FUNCTIONS ===
@@ -639,9 +650,11 @@
       console.log('mai-mee button clicked');
       // 直接遷移ではなくハッシュを更新（履歴/再読込対応）
       if (location.hash !== '#routines') {
+  stopTimer();
         location.hash = 'routines';
       } else {
         // 既にハッシュがある場合も再ルーティング
+  stopTimer();
         routeFromLocation();
       }
     });
@@ -683,7 +696,9 @@
 
   // === AUTO START LOGIC ===
   function shouldAutoStart() {
-    return true; // 常に自動スタート
+  // ルーティーン画面を直接開いている場合は自動スタートしない
+  if (location.hash === '#routines') return false;
+  return true; // それ以外は自動スタート
   }
 
   // === DOCUMENT READY ===
