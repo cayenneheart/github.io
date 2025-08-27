@@ -87,6 +87,7 @@ body {
 }
 
 .breathing-circle.hold {
+  transform: scale(1.4);
   transition: transform 0.3s ease-in-out;
 }
 

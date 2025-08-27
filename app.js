@@ -30,9 +30,10 @@ class BreathingApp {
   parseParams() {
     const params = new URLSearchParams(window.location.search);
     
-    // 合計秒数の取得（デフォルト60秒）
-    let sec = parseInt(params.get('sec')) || 60;
-    if (sec < 10 || sec > 600) sec = 60; // 10秒〜10分の範囲制限
+  // 合計秒数の取得（デフォルト20秒）
+  let sec = parseInt(params.get('sec'));
+  if (isNaN(sec)) sec = 20;
+  if (sec < 5 || sec > 600) sec = 20; // 5秒〜10分の範囲制限
     
     // パターンの取得（デフォルト4-2-4）
     let pattern = params.get('pattern') || '4-2-4';
