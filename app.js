@@ -1,3 +1,178 @@
+// Simplified breathing timer app
+// Behavior: auto-start on load; on finish show done view with two handoff buttons.
+(function () {
+  'use strict';
+
+  // --- Utilities ---
+  function qs(name, href) {
+    href = href || window.location.href;
+    name = name.replace(/[\[\]]/g, '\\$&');
+    var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)');
+    var results = regex.exec(href);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, ' '));
+  }
+
+  function parsePattern(str) {
+    if (!str) return [4, 2, 4];
+    var parts = String(str).split(/[^0-9]+/).filter(Boolean).map(Number);
+    if (parts.length !== 3 || parts.some(isNaN)) return [4, 2, 4];
+    return parts;
+  }
+
+  function isValidUrl(u) {
+    try {
+      if (!u) return false;
+      var url = new URL(u);
+      return url.protocol.startsWith('http');
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // --- DOM ---
+  var root = document;
+  var timerEl = root.getElementById('timerValue');
+  var circle = root.getElementById('breathingCircle');
+  var instruction = root.getElementById('instruction');
+  var viewTimer = root.getElementById('view-timer');
+  var viewDone = root.getElementById('view-done');
+  var backBtn = root.getElementById('backButton');
+  var maimeeBtn = root.getElementById('maimeeButton');
+  var toast = root.getElementById('toast');
+
+  // --- Params ---
+  var totalSec = parseInt(qs('sec')) || 20;
+  if (totalSec <= 0) totalSec = 20;
+  var pattern = parsePattern(qs('pattern'));
+  var back_url = qs('back_url');
+  var back_label = qs('back_label') || '戻る';
+  var maimee_url = qs('maimee_url') || '/';
+
+  // label
+  if (back_label && backBtn) backBtn.textContent = back_label;
+
+  // --- Timer state ---
+  var startTime = null;
+  var endTime = null;
+  var rafId = null;
+  var intervalId = null;
+
+  function showToast(msg) {
+    if (!toast) return;
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(function () { toast.classList.remove('show'); }, 2400);
+  }
+
+  function setViewTimerActive(active) {
+    if (active) {
+      viewTimer.classList.add('active');
+      viewDone.classList.remove('active');
+    } else {
+      viewTimer.classList.remove('active');
+      viewDone.classList.add('active');
+    }
+  }
+
+  // Compute breathing phase given elapsed and pattern (inhale, hold, exhale)
+  function phaseFor(elapsed, total) {
+    var p = pattern;
+    var cycle = p[0] + p[1] + p[2];
+    var cycleMs = (cycle / total) * 1000 * total; // effectively cycle * 1000
+    var elapsedMs = elapsed % (cycle * 1000);
+    var inhaleMs = p[0] * 1000;
+    var holdMs = p[1] * 1000;
+    var exhaleMs = p[2] * 1000;
+    if (elapsedMs < inhaleMs) return { phase: 'inhale', t: elapsedMs / inhaleMs };
+    if (elapsedMs < inhaleMs + holdMs) return { phase: 'hold', t: (elapsedMs - inhaleMs) / holdMs };
+    return { phase: 'exhale', t: (elapsedMs - inhaleMs - holdMs) / exhaleMs };
+  }
+
+  function updateUI(remainingMs) {
+    var remaining = Math.max(0, Math.ceil(remainingMs / 1000));
+    if (timerEl) timerEl.textContent = remaining;
+    // breathing circle: scale based on phase
+    var el = phaseFor((Date.now() - startTime), totalSec * 1000);
+    if (!circle) return;
+    circle.classList.remove('inhale', 'hold', 'exhale');
+    circle.classList.add(el.phase);
+    // during hold we keep enlarged via CSS .hold
+    if (instruction) instruction.textContent = (el.phase === 'inhale' ? '吸って' : el.phase === 'hold' ? '止める' : '吐いて');
+  }
+
+  function tick() {
+    var now = Date.now();
+    var remainingMs = Math.max(0, endTime - now);
+    updateUI(remainingMs);
+    if (remainingMs <= 0) {
+      finish();
+    }
+  }
+
+  function start() {
+    startTime = Date.now();
+    endTime = startTime + totalSec * 1000;
+    setViewTimerActive(true);
+    // initial UI
+    updateUI(totalSec * 1000);
+    // use interval for coarse updates to be battery-friendly; 150ms
+    intervalId = setInterval(tick, 150);
+    // also run one RAF to keep animations smooth at start
+    rafId = requestAnimationFrame(function frame() {
+      tick();
+      rafId = requestAnimationFrame(frame);
+    });
+  }
+
+  function finish() {
+    if (intervalId) { clearInterval(intervalId); intervalId = null; }
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    setViewTimerActive(false);
+    // focus the done heading for accessibility
+    var doneHeading = document.getElementById('doneHeading');
+    if (doneHeading) doneHeading.focus();
+  }
+
+  // --- Button handlers ---
+  if (backBtn) {
+    backBtn.addEventListener('click', function () {
+      if (!isValidUrl(back_url)) {
+        showToast('戻るURLが無効です');
+        return;
+      }
+      backBtn.setAttribute('aria-disabled', 'true');
+      location.href = back_url;
+    });
+  }
+
+  if (maimeeBtn) {
+    maimeeBtn.addEventListener('click', function () {
+      if (!isValidUrl(maimee_url) && maimee_url !== '/') {
+        showToast('mai-mee URLが無効です');
+        return;
+      }
+      maimeeBtn.setAttribute('aria-disabled', 'true');
+      location.href = maimee_url;
+    });
+  }
+
+  // Start automatically if the page opened (presence of any query param) OR always start
+  function shouldAutoStart() {
+    // If Shortcuts calls with params, start; otherwise still auto-start per user preference
+    return true;
+  }
+
+  // Kick off
+  document.addEventListener('DOMContentLoaded', function () {
+    // small delay to allow iOS/Shortcuts to stabilize
+    if (shouldAutoStart()) {
+      setTimeout(start, 120);
+    }
+  });
+
+})();
 document.addEventListener('DOMContentLoaded', () => {
   // --- DOM Elements ---
   const views = {

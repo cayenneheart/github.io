@@ -5,49 +5,33 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>深呼吸</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="apple-touch-icon" href="assets/icon-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
 </head>
 <body>
 
-  <!-- View: ホーム画面 -->
-  <div id="view-home" class="view">
-    <header class="app-header">
-      <h1>深呼吸</h1>
-      <p>心を落ち着けるための、シンプルな呼吸エクササイズです。</p>
-    </header>
-    <main class="app-main">
-      <a href="#" id="startButton" class="button-primary">開始する</a>
-    </main>
-    <footer>
-      <p>ショートカットから呼び出すと、タイマーが直接開始します。</p>
-    </footer>
-  </div>
-
-  <!-- View: タイマー画面 -->
-  <div id="view-timer" class="view">
-    <button class="audio-control" id="audioToggle" title="音楽のオン/オフ">🎵</button>
-    <div class="timer" id="timer">20</div>
-    <div class="breathing-container">
+  <!-- View: タイマー画面（自動開始） -->
+  <div id="view-timer" class="view active">
+    <div class="timer" id="timer" aria-live="polite">20</div>
+    <div class="breathing-container" aria-hidden="true">
       <div class="breathing-circle" id="breathingCircle"></div>
     </div>
     <div class="instruction" id="instruction" aria-live="polite">準備中...</div>
   </div>
 
   <!-- View: 完了画面 -->
-  <div id="view-done" class="view">
+  <div id="view-done" class="view" aria-hidden="true">
     <main class="app-main">
-      <h2 id="done-heading">整いました。</h2>
+      <h2 id="done-heading" tabindex="-1">整いました。</h2>
       <p>次へ進みますか？</p>
       <div class="done-actions">
-        <button id="backButton" class="button-secondary" disabled>元のアプリに戻る</button>
-        <button id="maimeeButton" class="button-primary">ホームに戻る</button>
+        <button id="backButton" class="button-secondary" disabled aria-disabled="true">元のアプリに戻る</button>
+        <button id="maimeeButton" class="button-primary">mai-meeに戻る</button>
       </div>
     </main>
   </div>
 
   <!-- Toast Notification -->
-  <div id="toast" class="toast" role="alert" aria-live="assertive"></div>
+  <div id="toast" class="toast" role="status" aria-live="assertive"></div>
 
   <script src="app.js"></script>
 </body>
