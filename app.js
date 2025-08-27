@@ -6,11 +6,15 @@ class BreathingApp {
     this.pattern = this.params.pattern;
     this.startTime = null;
     this.isCompleted = false;
+    this.audioContext = null;
+    this.audioPlaying = false;
+    this.audioNodes = {};
     
     this.elements = {
       timer: document.getElementById('timer'),
       circle: document.getElementById('breathingCircle'),
-      instruction: document.getElementById('instruction')
+      instruction: document.getElementById('instruction'),
+      audioToggle: document.getElementById('audioToggle')
     };
     
     this.phases = ['inhale', 'hold', 'exhale'];
@@ -51,6 +55,11 @@ class BreathingApp {
     this.elements.timer.textContent = this.totalSeconds;
     this.elements.instruction.textContent = '準備中...';
     
+    // 音声コントロールの設定
+    this.elements.audioToggle.addEventListener('click', () => {
+      this.toggleAudio();
+    });
+    
     // 1秒後に自動開始
     setTimeout(() => {
       this.start();
@@ -61,6 +70,9 @@ class BreathingApp {
     this.startTime = Date.now();
     this.elements.instruction.textContent = this.phaseTexts.inhale;
     this.updateAnimation();
+    
+    // 音楽を開始（ユーザー操作済みの場合）
+    this.initAudio();
     
     // メインループ（100ms間隔で更新）
     this.intervalId = setInterval(() => {
@@ -132,9 +144,118 @@ class BreathingApp {
     this.elements.circle.className = 'breathing-circle';
     document.body.classList.add('completed');
     
+    // 音楽を停止
+    this.stopAudio();
+    
     // バイブレーション（完了時）
     if (navigator.vibrate) {
       navigator.vibrate([100, 50, 100]);
+    }
+  }
+  
+  // 音声関連メソッド
+  async initAudio() {
+    try {
+      if (!this.audioContext) {
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      
+      if (this.audioContext.state === 'suspended') {
+        await this.audioContext.resume();
+      }
+      
+      // リラックス音楽を生成・再生
+      this.createRelaxingSound();
+      this.elements.audioToggle.disabled = false;
+    } catch (error) {
+      console.log('Audio initialization failed:', error);
+      this.elements.audioToggle.disabled = true;
+    }
+  }
+  
+  createRelaxingSound() {
+    if (!this.audioContext || this.audioPlaying) return;
+    
+    try {
+      // 低音の波音のような音を生成
+      const oscillator1 = this.audioContext.createOscillator();
+      const oscillator2 = this.audioContext.createOscillator();
+      const gainNode = this.audioContext.createGain();
+      const filterNode = this.audioContext.createBiquadFilter();
+      
+      // 設定
+      oscillator1.type = 'sine';
+      oscillator1.frequency.value = 200;
+      oscillator2.type = 'sine';
+      oscillator2.frequency.value = 300;
+      
+      filterNode.type = 'lowpass';
+      filterNode.frequency.value = 800;
+      
+      gainNode.gain.value = 0.05;
+      
+      // 周波数を微細に変動させてナチュラルに
+      oscillator1.frequency.setValueAtTime(200, this.audioContext.currentTime);
+      oscillator1.frequency.linearRampToValueAtTime(220, this.audioContext.currentTime + 4);
+      oscillator1.frequency.linearRampToValueAtTime(180, this.audioContext.currentTime + 8);
+      
+      oscillator2.frequency.setValueAtTime(300, this.audioContext.currentTime);
+      oscillator2.frequency.linearRampToValueAtTime(280, this.audioContext.currentTime + 6);
+      oscillator2.frequency.linearRampToValueAtTime(320, this.audioContext.currentTime + 10);
+      
+      // 接続
+      oscillator1.connect(filterNode);
+      oscillator2.connect(filterNode);
+      filterNode.connect(gainNode);
+      gainNode.connect(this.audioContext.destination);
+      
+      // 再生
+      oscillator1.start();
+      oscillator2.start();
+      
+      // 保存（停止用）
+      this.audioNodes = {
+        oscillator1,
+        oscillator2,
+        gainNode,
+        filterNode
+      };
+      
+      this.audioPlaying = true;
+      this.elements.audioToggle.textContent = '🔊';
+      
+      // 自動で音楽をループ
+      setTimeout(() => {
+        if (this.audioPlaying && !this.isCompleted) {
+          this.stopAudio();
+          setTimeout(() => this.createRelaxingSound(), 100);
+        }
+      }, this.totalSeconds * 1000);
+      
+    } catch (error) {
+      console.log('Audio creation failed:', error);
+    }
+  }
+  
+  stopAudio() {
+    if (this.audioNodes.oscillator1) {
+      try {
+        this.audioNodes.oscillator1.stop();
+        this.audioNodes.oscillator2.stop();
+      } catch (e) {
+        // Already stopped
+      }
+    }
+    this.audioNodes = {};
+    this.audioPlaying = false;
+    this.elements.audioToggle.textContent = '🎵';
+  }
+  
+  toggleAudio() {
+    if (this.audioPlaying) {
+      this.stopAudio();
+    } else {
+      this.initAudio();
     }
   }
 }

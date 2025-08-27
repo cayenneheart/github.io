@@ -40,10 +40,11 @@ body {
   position: absolute;
   top: 20px;
   right: 20px;
-  font-size: 1.5rem;
+  font-size: 2.5rem;
   font-variant-numeric: tabular-nums;
   color: var(--timer-color);
   z-index: 10;
+  font-weight: 600;
 }
 
 /* 呼吸アニメーション領域 */
@@ -111,7 +112,7 @@ body {
   .timer {
     top: 15px;
     right: 15px;
-    font-size: 1.2rem;
+    font-size: 2rem;
   }
   
   .breathing-circle {
@@ -147,5 +148,37 @@ body {
   .completed .breathing-circle {
     background-color: #198754;
     box-shadow: 0 0 20px rgba(25, 135, 84, 0.3);
+  }
+}
+
+/* 音声コントロール */
+.audio-control {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--timer-color);
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+  z-index: 10;
+}
+
+.audio-control:hover {
+  opacity: 1;
+}
+
+.audio-control:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+  .audio-control {
+    top: 15px;
+    left: 15px;
+    font-size: 1.3rem;
   }
 }
