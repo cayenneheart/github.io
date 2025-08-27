@@ -58,6 +58,7 @@
   var viewTimer = root.getElementById('view-timer');
   var viewDone = root.getElementById('view-done');
   var viewRoutines = root.getElementById('view-routines');
+  var viewAdd = root.getElementById('view-add');
   var backBtn = root.getElementById('backButton');
   var maimeeBtn = root.getElementById('maimeeButton');
   var toast = root.getElementById('toast');
@@ -93,7 +94,7 @@
       routines: !!viewRoutines
     });
     
-    [viewTimer, viewDone, viewRoutines].forEach(function(view) {
+  [viewTimer, viewDone, viewRoutines, viewAdd].forEach(function(view) {
       if (view) {
         view.classList.remove('active');
         view.setAttribute('aria-hidden', 'true');
@@ -113,6 +114,12 @@
       viewRoutines.setAttribute('aria-hidden', 'false');
       console.log('Routines view activated');
     }
+    else if (viewName === 'add' && viewAdd) {
+      viewAdd.classList.add('active');
+      viewAdd.setAttribute('aria-hidden', 'false');
+      var nt = document.getElementById('new-title');
+      if (nt) setTimeout(()=>nt.focus(),50);
+    }
     
     console.log('Current active view:', document.querySelector('.view.active')?.id);
   }
@@ -120,7 +127,7 @@
   // ハッシュ(#routines など)によるルーティング
   function routeFromLocation() {
     var hash = (location.hash || '').replace('#', '');
-    if (hash === 'routines') {
+  if (hash === 'routines' || hash === '') {
       // データを都度ロード（他タブでの変更反映用）
   stopTimer();
       routines = loadRoutines();
@@ -131,6 +138,7 @@
       showView('routines');
       return;
     }
+  if (hash === 'add') { showView('add'); return; }
     if (hash === 'done') {
       showView('done');
       return;
@@ -325,7 +333,9 @@
       counts: { total: 0, today: 0, todayDate: todayStr() },
       lastDoneAt: 0,
       createdAt: Date.now(),
-      updatedAt: Date.now()
+  updatedAt: Date.now(),
+  xp: 0,
+  level: 1
     };
     
     routines.unshift(routine);
@@ -362,9 +372,11 @@
     routine.lastDoneAt = Date.now();
     
     // XP計算・付与
-    var xpGain = Math.max(10, Math.round(routine.durationSec / 10) * 5);
+  var xpGain = Math.max(5, Math.round(routine.durationSec / 10) * 5);
     stats.xp += xpGain;
     stats.level = Math.floor(stats.xp / 100) + 1;
+  routine.xp = (routine.xp || 0) + xpGain;
+  routine.level = Math.floor((routine.xp || 0) / 100) + 1;
     
     // ストリーク更新
     if (stats.lastDoneDate === today) {
@@ -469,15 +481,20 @@
       li.className = 'routine-item' + (routine.pinned ? ' pinned' : '');
       li.setAttribute('data-routine-id', routine.id);
       
+      var xp = routine.xp || 0;
+      var level = routine.level || 1;
+      var xpPct = xp % 100;
       li.innerHTML = [
         '<div class="routine-emoji">' + routine.emoji + '</div>',
         '<div class="routine-info">',
         '  <h3 class="routine-title">' + escapeHtml(routine.title) + '</h3>',
         '  <div class="routine-meta">',
+        '    <span>Lv.' + level + '</span>',
+        '    <span>' + xp + 'XP</span>',
         '    <span>' + routine.durationSec + '秒</span>',
-        '    <span>今日: ' + routine.counts.today + '回</span>',
-        '    <span>計: ' + routine.counts.total + '回</span>',
+        '    <span>今日:' + routine.counts.today + '</span>',
         '  </div>',
+        '  <div class="mini-bar"><div class="mini-fill" style="width:'+xpPct+'%"></div></div>',
         '</div>',
         '<div class="routine-actions">',
         '  <button class="check-btn" data-action="complete" aria-label="完了">✓</button>',
@@ -660,6 +677,29 @@
     });
   }
 
+  // === ADD VIEW EVENTS ===
+  var fab = document.getElementById('fab-add');
+  if (fab) {
+    fab.addEventListener('click', function(){ location.hash = 'add'; });
+  }
+  var addForm = document.getElementById('add-task-form');
+  if (addForm) {
+    addForm.addEventListener('submit', function(e){
+      e.preventDefault();
+      var title = document.getElementById('new-title').value.trim();
+      var dur = parseInt(document.getElementById('new-duration').value) || 20;
+      var emoji = document.getElementById('new-emoji').value.trim();
+      if(!title){ showToast('タイトル必須'); return; }
+      if(dur<5||dur>900){ showToast('5〜900秒'); return; }
+      addRoutine(title,dur,emoji);
+      location.hash='routines';
+    });
+  }
+  var cancelAdd = document.getElementById('cancel-add');
+  if (cancelAdd) {
+    cancelAdd.addEventListener('click', function(){ location.hash='routines'; });
+  }
+
   // === INITIALIZATION ===
   function checkDateRollover() {
     var today = todayStr();
@@ -758,13 +798,14 @@
       });
     }
     
-    // タイマー自動スタート
-    if (shouldAutoStart()) {
-      setTimeout(start, 120);
-    }
-  // 初回ロード時のハッシュ反映（タイマー開始後でもOK）
-  routeFromLocation();
-  window.addEventListener('hashchange', routeFromLocation);
+    // ルート適用（デフォルトは routines）
+    routeFromLocation();
+    window.addEventListener('hashchange', function(){
+      routeFromLocation();
+      if(location.hash==='#timer' && !timerRunning){ setTimeout(start,120); }
+    });
+    // 初回 #timer の場合のみスタート
+    if (location.hash==='#timer') setTimeout(start,120);
     
     console.log('Initialization complete');
   });

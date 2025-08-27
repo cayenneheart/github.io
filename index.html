@@ -9,8 +9,8 @@
 </head>
 <body>
 
-  <!-- View: タイマー画面（自動開始） -->
-  <div id="view-timer" class="view active">
+  <!-- View: タイマー画面（自動開始 - 今は #timer 指定時のみ） -->
+  <div id="view-timer" class="view" aria-hidden="true">
     <div class="timer" id="timer" aria-live="polite">20</div>
     <div class="breathing-container" aria-hidden="true">
       <div class="breathing-circle" id="breathingCircle"></div>
@@ -30,23 +30,14 @@
     </main>
   </div>
 
-  <!-- View: ルーティーン画面 -->
-  <div id="view-routines" class="view" aria-hidden="true">
+  <!-- View: タスクリスト画面（デフォルト） -->
+  <div id="view-routines" class="view active" aria-hidden="false">
     <header class="app-header">
-      <h1>mai-mee</h1>
-      <p class="tagline">スマホを開くくらいなら、これを1つ</p>
+      <h1>タスクリスト</h1>
+      <p class="tagline">小さな行動を積み上げよう</p>
     </header>
     
     <main class="routines-main">
-      <!-- 追加フォーム -->
-      <section class="add-routine" aria-label="新しいルーティーンを追加">
-        <div class="add-form">
-          <input type="text" id="routine-title" placeholder="例：首ストレッチ" maxlength="40" aria-label="ルーティーン名">
-          <input type="number" id="routine-duration" value="20" min="10" max="900" aria-label="所要時間（秒）">
-          <button id="add-routine-btn" class="add-btn" aria-label="ルーティーンを追加">＋</button>
-        </div>
-      </section>
-      
       <!-- ルーティーン一覧 -->
       <section class="routines-list" aria-label="ルーティーン一覧">
         <div id="routines-container">
@@ -85,6 +76,34 @@
           </div>
         </div>
       </section>
+    </main>
+    <button id="fab-add" class="fab" aria-label="タスクを追加">＋</button>
+  </div>
+
+  <!-- View: タスク追加画面 -->
+  <div id="view-add" class="view" aria-hidden="true">
+    <header class="app-header">
+      <h1>タスクを追加</h1>
+    </header>
+    <main class="add-main">
+      <form id="add-task-form" class="task-form" aria-label="新規タスクフォーム">
+        <div class="form-group">
+          <label for="new-title">名前</label>
+          <input type="text" id="new-title" maxlength="40" required placeholder="例：深呼吸">
+        </div>
+        <div class="form-group">
+          <label for="new-duration">時間（秒）</label>
+          <input type="number" id="new-duration" min="5" max="900" value="20" required>
+        </div>
+        <div class="form-group">
+          <label for="new-emoji">絵文字（任意）</label>
+          <input type="text" id="new-emoji" maxlength="2" placeholder="✨">
+        </div>
+        <div class="form-actions two">
+          <button type="button" id="cancel-add" class="button-secondary">キャンセル</button>
+          <button type="submit" class="button-primary">追加</button>
+        </div>
+      </form>
     </main>
   </div>
 
