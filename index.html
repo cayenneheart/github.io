@@ -3,36 +3,20 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Web Timer</title>
-  <style>
-    body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      background-color: #f0f0f0;
-    }
-    #timer {
-      font-size: 96px;
-      color: blue;
-    }
-  </style>
+  <title>深呼吸 - 60秒</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
 </head>
 <body>
-  <div id="timer" aria-live="polite">60</div>
-  <script>
-    let time = 60;
-    const timerElement = document.getElementById('timer');
-
-    function updateTimer() {
-      if (time > 0) {
-        time--;
-        timerElement.textContent = time;
-      }
-    }
-
-    setInterval(updateTimer, 1000);
-  </script>
+  <div class="timer" id="timer">60</div>
+  
+  <div class="breathing-container">
+    <div class="breathing-circle" id="breathingCircle"></div>
+  </div>
+  
+  <div class="instruction" id="instruction" aria-live="polite">準備中...</div>
+  
+  <script src="app.js"></script>
 </body>
 </html>

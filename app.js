@@ -1,144 +1,145 @@
-// 小さくシンプルなカウントダウンタイマー
-(function(){
-  'use strict';
-
-  function getParams(){
-    const p = new URLSearchParams(location.search);
-    let sec = parseInt(p.get('sec')) || 60;
-    if(isNaN(sec)) sec = 60;
-    sec = Math.max(1, Math.min(3600, Math.floor(sec)));
-    let label = p.get('label') || '';
-    if(label.length>32) label = label.slice(0,32);
-    return {sec, label};
+// 深呼吸アプリ - バージョン1
+class BreathingApp {
+  constructor() {
+    this.params = this.parseParams();
+    this.totalSeconds = this.params.sec;
+    this.pattern = this.params.pattern;
+    this.startTime = null;
+    this.isCompleted = false;
+    
+    this.elements = {
+      timer: document.getElementById('timer'),
+      circle: document.getElementById('breathingCircle'),
+      instruction: document.getElementById('instruction')
+    };
+    
+    this.phases = ['inhale', 'hold', 'exhale'];
+    this.phaseTexts = {
+      inhale: '吸って',
+      hold: '止めて',
+      exhale: '吐いて'
+    };
+    
+    this.init();
   }
-
-  const el = document.getElementById('timer');
-  let total = 60;
-  let startAt = null;
-  let rafId = null;
-
-  function updateTitle(label, remaining){
-    if(label) document.title = `${label} — ${remaining}s`;
-    else document.title = `${remaining}s`;
+  
+  parseParams() {
+    const params = new URLSearchParams(window.location.search);
+    
+    // 合計秒数の取得（デフォルト60秒）
+    let sec = parseInt(params.get('sec')) || 60;
+    if (sec < 10 || sec > 600) sec = 60; // 10秒〜10分の範囲制限
+    
+    // パターンの取得（デフォルト4-2-4）
+    let pattern = params.get('pattern') || '4-2-4';
+    const patternMatch = pattern.match(/^(\d+)-(\d+)-(\d+)$/);
+    if (!patternMatch) {
+      pattern = [4, 2, 4]; // デフォルト
+    } else {
+      pattern = patternMatch.slice(1).map(n => parseInt(n));
+      // パターン検証（1-30秒の範囲）
+      if (pattern.some(n => n < 1 || n > 30)) {
+        pattern = [4, 2, 4]; // デフォルトにフォールバック
+      }
+    }
+    
+    return { sec, pattern };
   }
-
-  function render(remaining){
-    const n = Math.max(0, Math.ceil(remaining));
-    el.textContent = String(n);
-    updateTitle(params.label, n);
+  
+  init() {
+    // 初期状態の設定
+    this.elements.timer.textContent = this.totalSeconds;
+    this.elements.instruction.textContent = '準備中...';
+    
+    // 1秒後に自動開始
+    setTimeout(() => {
+      this.start();
+    }, 1000);
   }
-
-  function finish(){
-    render(0);
-    // 簡易フラッシュ（背景反転）
-    const origBg = document.body.style.backgroundColor;
-    document.body.style.backgroundColor = params && params.label ? '#ffeb3b' : '#ffeb3b';
-    if(navigator.vibrate) navigator.vibrate([200,100,200]);
-    setTimeout(()=>{ document.body.style.backgroundColor = origBg; }, 500);
+  
+  start() {
+    this.startTime = Date.now();
+    this.elements.instruction.textContent = this.phaseTexts.inhale;
+    this.updateAnimation();
+    
+    // メインループ（100ms間隔で更新）
+    this.intervalId = setInterval(() => {
+      this.updateAnimation();
+    }, 100);
   }
-
-  function tick(){
-    const now = Date.now();
-    const elapsed = (now - startAt)/1000;
-    const remaining = total - elapsed;
-    if(remaining <= 0){
-      cancelAnimationFrame(rafId);
-      finish();
+  
+  updateAnimation() {
+    const elapsed = Date.now() - this.startTime;
+    const elapsedSeconds = elapsed / 1000;
+    const remainingSeconds = Math.max(0, this.totalSeconds - elapsedSeconds);
+    
+    // タイマー更新
+    this.elements.timer.textContent = Math.ceil(remainingSeconds);
+    
+    // 終了チェック
+    if (remainingSeconds <= 0) {
+      this.complete();
       return;
     }
-    render(remaining);
-    rafId = requestAnimationFrame(tick);
-  }
-
-  function start(totalSec){
-    total = totalSec;
-    startAt = Date.now();
-    if(rafId) cancelAnimationFrame(rafId);
-    rafId = requestAnimationFrame(tick);
-  }
-
-  function handleVisibility(){
-    if(document.visibilityState === 'visible'){
-      // 再計算は tick が行う（startAt 基準なので自動補正される）
-      // ただし即時レンダリング
-      const now = Date.now();
-      const elapsed = (now - startAt)/1000;
-      const remaining = total - elapsed;
-      if(remaining<=0){ finish(); }
-      else render(remaining);
+    
+    // 現在のフェーズ計算
+    const cycleLength = this.pattern[0] + this.pattern[1] + this.pattern[2];
+    const cyclePosition = elapsedSeconds % cycleLength;
+    
+    let currentPhase;
+    let phaseProgress;
+    
+    if (cyclePosition < this.pattern[0]) {
+      // 吸う
+      currentPhase = 'inhale';
+      phaseProgress = cyclePosition / this.pattern[0];
+    } else if (cyclePosition < this.pattern[0] + this.pattern[1]) {
+      // 止める
+      currentPhase = 'hold';
+      phaseProgress = (cyclePosition - this.pattern[0]) / this.pattern[1];
+    } else {
+      // 吐く
+      currentPhase = 'exhale';
+      phaseProgress = (cyclePosition - this.pattern[0] - this.pattern[1]) / this.pattern[2];
+    }
+    
+    // フェーズ変更時の処理
+    if (this.currentPhase !== currentPhase) {
+      this.currentPhase = currentPhase;
+      this.updatePhase(currentPhase);
+      
+      // バイブレーション（対応デバイスのみ）
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
     }
   }
-
-  const params = getParams();
-
-  document.addEventListener('visibilitychange', handleVisibility);
-
-  document.addEventListener('DOMContentLoaded', () => {
-    const timerEl = document.getElementById('timer');
-    const startBtn = document.getElementById('start');
-    const stopBtn = document.getElementById('stop');
-    const resetBtn = document.getElementById('reset');
-
-    let total = parseInt(timerEl.textContent, 10) || 60;
-    let remaining = total;
-    let interval = null;
-
-    const format = (sec) => {
-      const m = Math.floor(sec / 60);
-      const s = sec % 60;
-      return m > 0 ? `${m}:${String(s).padStart(2, '0')}` : String(s);
-    };
-
-    function render() {
-      timerEl.textContent = format(remaining);
+  
+  updatePhase(phase) {
+    // CSSクラス更新
+    this.elements.circle.className = `breathing-circle ${phase}`;
+    
+    // テキスト更新
+    this.elements.instruction.textContent = this.phaseTexts[phase];
+  }
+  
+  complete() {
+    clearInterval(this.intervalId);
+    this.isCompleted = true;
+    
+    this.elements.timer.textContent = '0';
+    this.elements.instruction.textContent = '完了！';
+    this.elements.circle.className = 'breathing-circle';
+    document.body.classList.add('completed');
+    
+    // バイブレーション（完了時）
+    if (navigator.vibrate) {
+      navigator.vibrate([100, 50, 100]);
     }
+  }
+}
 
-    startBtn.addEventListener('click', () => {
-      if (interval) return;
-      interval = setInterval(() => {
-        if (remaining <= 0) {
-          clearInterval(interval);
-          interval = null;
-          return;
-        }
-        remaining--;
-        render();
-      }, 1000);
-    });
-
-    stopBtn.addEventListener('click', () => {
-      if (interval) {
-        clearInterval(interval);
-        interval = null;
-      }
-    });
-
-    resetBtn.addEventListener('click', () => {
-      if (interval) {
-        clearInterval(interval);
-        interval = null;
-      }
-      remaining = total;
-      render();
-    });
-
-    // タイマーをクリックすると秒数を入力してセットできます
-    timerEl.addEventListener('click', () => {
-      const v = prompt('秒数を入力してください（例: 90）', String(total));
-      const n = parseInt(v, 10);
-      if (!isNaN(n) && n >= 0) {
-        total = n;
-        remaining = n;
-        render();
-      }
-    });
-
-    // タイトルにラベル反映
-    if(params.label) document.title = params.label;
-    // 初回表示
-    render(params.sec);
-    // 自動開始
-    start(params.sec);
-  });
-
-})();
+// ページ読み込み時に自動開始
+document.addEventListener('DOMContentLoaded', () => {
+  new BreathingApp();
+});

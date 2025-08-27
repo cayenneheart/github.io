@@ -1,31 +1,151 @@
-:root{
-  --bg:#ffffff;
-  --fg:#0b0b0b;
+/* リセット */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
-@media (prefers-color-scheme: dark){
-  :root{ --bg:#0b0b0b; --fg:#f7f7f7 }
+
+/* ダークモード対応 */
+:root {
+  --bg-color: #f8f9fa;
+  --text-color: #212529;
+  --circle-color: #007bff;
+  --timer-color: #6c757d;
 }
-html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:12px}
-#timer{
-  height:100vh;display:flex;align-items:center;justify-content:center;font-size:20vw;line-height:1;font-variant-numeric:tabular-nums;font-weight:700;
-  width:100%;text-align:center;-webkit-font-smoothing:antialiased;letter-spacing:0.02em;padding:20px;background:#fff;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,0.08);user-select:none;cursor:pointer
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: #212529;
+    --text-color: #f8f9fa;
+    --circle-color: #0d6efd;
+    --timer-color: #adb5bd;
+  }
 }
-@media (min-width:800px){
-  #timer{font-size:160px}
-}
-.controls {
+
+/* ベースレイアウト */
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  height: 100vh;
   display: flex;
-  gap: 8px;
+  flex-direction: column;
   justify-content: center;
+  align-items: center;
+  overflow: hidden;
 }
 
-button {
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid #ddd;
-  background: #fff;
-  cursor: pointer;
-  font-size: 14px;
+/* タイマー表示（右上） */
+.timer {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--timer-color);
+  z-index: 10;
 }
 
-button:active { transform: translateY(1px); }
+/* 呼吸アニメーション領域 */
+.breathing-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+/* 呼吸円 */
+.breathing-circle {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background-color: var(--circle-color);
+  transform: scale(0.8);
+  transition: transform 0.3s ease-in-out;
+  box-shadow: 0 0 20px rgba(0, 123, 255, 0.3);
+}
+
+/* 指示テキスト */
+.instruction {
+  position: absolute;
+  bottom: 60px;
+  width: 100%;
+  text-align: center;
+  font-size: 1.8rem;
+  font-weight: 300;
+  color: var(--text-color);
+}
+
+/* アニメーション状態 */
+.breathing-circle.inhale {
+  transform: scale(1.4);
+  transition: transform 4s ease-in-out;
+}
+
+.breathing-circle.hold {
+  transition: transform 0.3s ease-in-out;
+}
+
+.breathing-circle.exhale {
+  transform: scale(0.8);
+  transition: transform 4s ease-in-out;
+}
+
+/* モーション低減対応 */
+@media (prefers-reduced-motion: reduce) {
+  .breathing-circle {
+    transition: transform 0.8s ease-in-out;
+  }
+  
+  .breathing-circle.inhale,
+  .breathing-circle.exhale {
+    transition: transform 1.2s ease-in-out;
+  }
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 480px) {
+  .timer {
+    top: 15px;
+    right: 15px;
+    font-size: 1.2rem;
+  }
+  
+  .breathing-circle {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .instruction {
+    bottom: 40px;
+    font-size: 1.5rem;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .instruction {
+    bottom: 20px;
+    font-size: 1.4rem;
+  }
+  
+  .breathing-circle {
+    width: 90px;
+    height: 90px;
+  }
+}
+
+/* 完了状態 */
+.completed .breathing-circle {
+  background-color: #28a745;
+  box-shadow: 0 0 20px rgba(40, 167, 69, 0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+  .completed .breathing-circle {
+    background-color: #198754;
+    box-shadow: 0 0 20px rgba(25, 135, 84, 0.3);
+  }
+}
